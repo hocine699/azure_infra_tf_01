@@ -1,11 +1,11 @@
 variable "location" {
  type = string
- default = "East US"
+ default = "francecentral"
 }
 variable "sku" {
   default = {
-    westus2 = "16.04-LTS"
-    "East US"  = "18.04-LTS"
+    westus2 = "22.04-LTS"
+    "francecentral"  = "22.04-LTS"
   }
 }
 
