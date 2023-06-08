@@ -1,117 +1,85 @@
-# Configure the Azure provider
 terraform {
-  required_providers {
-    azurerm = {
-      source = "hashicorp/azurerm"
-      version = ">= 3.59.0"
-    }
-  }
+required_providers {
+azurerm = {
+source = "hashicorp/azurerm"
+version = "~>3.59.0"
+}
+}
 }
 
 provider "azurerm" {
-  features {}
+features {}
+
+subscription_id = "393e3de3-0900-4b72-8f1b-fb3b1d6b97f1"
+tenant_id = "7349d3b2-951f-41be-877e-d8ccd9f3e73c"
+client_id = "144b8605-b50a-4006-9e0d-2be66549f401"
+client_secret = "Poh8Q~~.8Bs6xDelqmtmIPS5vOUSAlNO5SjPDcT~"
 }
 
-#Create a Resource Group
+##Resource Group
 resource "azurerm_resource_group" "rg" {
-  name     = "Terraform-Jenkins-Hocine"
-  location = "francecentral"
+name = "Terraform-Hocine-Rg"
+location = "france central"
 }
 
-# Create a Virtual Network
+##Avaibility Set
+resource "azurerm_availability_set" "DemoAset" {
+name = "tf-aset"
+location = azurerm_resource_group.rg.location
+resource_group_name = azurerm_resource_group.rg.name
+}
+
+##Virtual Network
 resource "azurerm_virtual_network" "vnet" {
-    name                = "Vnet-tf-jenkins"
-    address_space       = ["10.0.1.0/24"]
-    location            = "francecentral"
-    resource_group_name = azurerm_resource_group.rg.name
+name = "tf-vNet"
+address_space = ["10.0.0.0/16"]
+location = azurerm_resource_group.rg.location
+resource_group_name = azurerm_resource_group.rg.name
 }
 
-# Create a Subnet
+##Subnet
 resource "azurerm_subnet" "subnet" {
-  name                 = "subnet-tf-jenkins"
-  resource_group_name  = azurerm_resource_group.rg.name
-  virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = ["10.0.1.0/24"]
+name = "Internal"
+resource_group_name = azurerm_resource_group.rg.name
+virtual_network_name = azurerm_virtual_network.vnet.name
+address_prefixes = ["10.0.2.0/24"]
 }
 
-# Create public IP
-resource "azurerm_public_ip" "publicip" {
-  name                = "TFPublicIP"
-  location            = "francecentral"
-  resource_group_name = azurerm_resource_group.rg.name
-  allocation_method   = "Static"
+##Network interface
+resource "azurerm_network_interface" "example" {
+name = "tf-vmwin-nic"
+location = azurerm_resource_group.rg.location
+resource_group_name = azurerm_resource_group.rg.name
+
+ip_configuration {
+name = "internal"
+subnet_id = azurerm_subnet.subnet.id
+private_ip_address_allocation = "Dynamic"
+}
 }
 
+##Azure Virtual Machine
+resource "azurerm_windows_virtual_machine" "example" {
+name = "tf-vmwin"
+resource_group_name = azurerm_resource_group.rg.name
+location = azurerm_resource_group.rg.location
+size = "Standard_F2"
+admin_username = "adminuser"
+admin_password = "P@$$w0rd1234!"
+availability_set_id = azurerm_availability_set.DemoAset.id
+network_interface_ids = [
+azurerm_network_interface.example.id,
+]
 
-# Create Network Security Group and rule
-resource "azurerm_network_security_group" "nsg" {
-  name                = "myTFNSG"
-  location            = "francecentral"
-  resource_group_name = azurerm_resource_group.rg.name
-
-  security_rule {
-    name                       = "SSH"
-    priority                   = 1001
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "22"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
+os_disk {
+caching = "ReadWrite"
+storage_account_type = "Standard_LRS"
 }
 
-# Create network interface
-resource "azurerm_network_interface" "nic" {
-  name                      = "myNIC"
-  location                  = "francecentral"
-  resource_group_name       = azurerm_resource_group.rg.name
-
-  ip_configuration {
-    name                          = "myNICConfg"
-    subnet_id                     = azurerm_subnet.subnet.id
-    private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.publicip.id
-  }
+source_image_reference {
+publisher = "MicrosoftWindowsServer"
+offer = "WindowsServer"
+sku = "2022-Datacenter"
+version = "latest"
 }
-
-# Create a Linux virtual machine
-resource "azurerm_virtual_machine" "vm" {
-  name                  = "VM-TF-Jenkins-Hocine"
-  location              = "francecentral"
-  resource_group_name   = azurerm_resource_group.rg.name
-  network_interface_ids = [azurerm_network_interface.nic.id]
-  vm_size               = "Standard_DS1_v2"
-
-  storage_os_disk {
-    name              = "myOsDisk"
-    caching           = "ReadWrite"
-    create_option     = "FromImage"
-    managed_disk_type = "Premium_LRS"
-  }
-
-  storage_image_reference {
-    publisher = "Canonical"
-    offer     = "UbuntuServer"
-    sku       = lookup(var.sku, var.location)
-    version   = "latest"
-  }
-
-  os_profile {
-    computer_name  = "VM-Hocine-FT-Jenkins"
-    admin_username = var.admin_username
-    admin_password = var.admin_password
-  }
-
-  os_profile_linux_config {
-    disable_password_authentication = false
-  }
 }
-
-data "azurerm_public_ip" "ip" {
-  name                = azurerm_public_ip.publicip.name
-  resource_group_name = azurerm_virtual_machine.vm.resource_group_name
-  depends_on          = [azurerm_virtual_machine.vm]
-}
-
