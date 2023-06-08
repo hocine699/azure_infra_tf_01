@@ -1,20 +1,36 @@
-variable "location" {
- type = string
- default = "francecentral"
-}
-variable "sku" {
-  default = {
-    westus2 = "22.04-LTS"
-    "francecentral"  = "22.04-LTS"
-  }
-}
+pipeline {
+    agent any
 
-variable "admin_username" {
- type    = string
- default = "username"
-}
-
-variable "admin_password" {
- type = string
- default = "Pa$$w0rd"
-}
+    stages {
+        stage('checkout') {
+            steps {
+                         
+            }
+        }
+        
+        stage('Terraform init') {
+            steps {
+                sh 'terraform init'
+            }
+        }
+        
+        stage('Terraform validate') {
+            steps {
+                sh 'terraform validate'
+            }
+        }
+        
+        stage('Terraform plan') {
+            steps {
+                sh 'terraform plan -out main.plan'
+            }
+        }
+        
+        stage('Terraform apply') {
+            steps {
+                sh 'terraform apply --auto-approve'
+                
+            }
+        }
+        
+    }
