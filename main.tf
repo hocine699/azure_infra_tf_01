@@ -3,7 +3,7 @@ terraform {
   required_providers {
     azurerm = {
       source = "hashicorp/azurerm"
-      version = ">= 2.26"
+      version = ">= 3.59.0"
     }
   }
 }
@@ -14,21 +14,21 @@ provider "azurerm" {
 
 #Create a Resource Group
 resource "azurerm_resource_group" "rg" {
-  name     = "myTFResourceGroup"
-  location = "East US"
+  name     = "Terraform-Jenkins-Hocine"
+  location = "francecentral"
 }
 
 # Create a Virtual Network
 resource "azurerm_virtual_network" "vnet" {
-    name                = "myTFVnet"
+    name                = "Vnet-tf-jenkins"
     address_space       = ["10.0.1.0/24"]
-    location            = "East US"
+    location            = "francecentral"
     resource_group_name = azurerm_resource_group.rg.name
 }
 
 # Create a Subnet
 resource "azurerm_subnet" "subnet" {
-  name                 = "myTFSubnet"
+  name                 = "subnet-tf-jenkins"
   resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["10.0.1.0/24"]
@@ -36,8 +36,8 @@ resource "azurerm_subnet" "subnet" {
 
 # Create public IP
 resource "azurerm_public_ip" "publicip" {
-  name                = "myTFPublicIP"
-  location            = "East US"
+  name                = "TFPublicIP"
+  location            = "francecentral"
   resource_group_name = azurerm_resource_group.rg.name
   allocation_method   = "Static"
 }
@@ -46,7 +46,7 @@ resource "azurerm_public_ip" "publicip" {
 # Create Network Security Group and rule
 resource "azurerm_network_security_group" "nsg" {
   name                = "myTFNSG"
-  location            = "East US"
+  location            = "francecentral"
   resource_group_name = azurerm_resource_group.rg.name
 
   security_rule {
@@ -65,7 +65,7 @@ resource "azurerm_network_security_group" "nsg" {
 # Create network interface
 resource "azurerm_network_interface" "nic" {
   name                      = "myNIC"
-  location                  = "East US"
+  location                  = "francecentral"
   resource_group_name       = azurerm_resource_group.rg.name
 
   ip_configuration {
@@ -78,8 +78,8 @@ resource "azurerm_network_interface" "nic" {
 
 # Create a Linux virtual machine
 resource "azurerm_virtual_machine" "vm" {
-  name                  = "myTFVM"
-  location              = "East US"
+  name                  = "VM-TF-Jenkins-Hocine"
+  location              = "francecentral"
   resource_group_name   = azurerm_resource_group.rg.name
   network_interface_ids = [azurerm_network_interface.nic.id]
   vm_size               = "Standard_DS1_v2"
@@ -99,7 +99,7 @@ resource "azurerm_virtual_machine" "vm" {
   }
 
   os_profile {
-    computer_name  = "myTFVM"
+    computer_name  = "VM-Hocine-FT-Jenkins"
     admin_username = var.admin_username
     admin_password = var.admin_password
   }
